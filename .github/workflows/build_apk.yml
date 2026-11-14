@@ -40,8 +40,12 @@ jobs:
           sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 21/g' android/app/build.gradle 2>/dev/null || true
           sed -i 's/minSdk flutter.minSdkVersion/minSdk 21/g' android/app/build.gradle 2>/dev/null || true
 
-      - name: Get Dependencies
-        run: flutter pub get
+      - name: Update Notification Package to Non-Buggy Version
+        run: |
+          flutter pub remove audioplayers || true
+          flutter pub remove hive_generator || true
+          flutter pub remove riverpod_generator || true
+          flutter pub add flutter_local_notifications:^17.2.1
 
       - name: Build APK (Release)
         run: flutter build apk --release --no-tree-shake-icons
