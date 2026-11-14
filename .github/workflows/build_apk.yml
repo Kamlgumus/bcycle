@@ -25,13 +25,20 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Auto-generate Gradle Wrapper & Android Scaffolding
+      - name: Recreate Clean Android Scaffolding
         run: |
-          cp android/app/src/main/AndroidManifest.xml /tmp/AndroidManifest.xml
+          if [ -f android/app/src/main/AndroidManifest.xml ]; then
+            cp android/app/src/main/AndroidManifest.xml /tmp/AndroidManifest.xml
+          fi
+          rm -rf android
           flutter create --platforms=android --org=com.bcycle .
-          cp /tmp/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
-          sed -i 's/minSdkVersion = flutter.minSdkVersion/minSdkVersion 21/g' android/app/build.gradle 2>/dev/null || true
+          if [ -f /tmp/AndroidManifest.xml ]; then
+            cp /tmp/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+          fi
+          sed -i 's/minSdkVersion = flutter.minSdkVersion/minSdkVersion = 21/g' android/app/build.gradle 2>/dev/null || true
           sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' android/app/build.gradle 2>/dev/null || true
+          sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 21/g' android/app/build.gradle 2>/dev/null || true
+          sed -i 's/minSdk flutter.minSdkVersion/minSdk 21/g' android/app/build.gradle 2>/dev/null || true
 
       - name: Get Dependencies
         run: flutter pub get
