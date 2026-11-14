@@ -25,7 +25,7 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Recreate Clean Android Scaffolding
+      - name: Recreate Clean Android Scaffolding & Enable Desugaring
         run: |
           if [ -f android/app/src/main/AndroidManifest.xml ]; then
             cp android/app/src/main/AndroidManifest.xml /tmp/AndroidManifest.xml
@@ -35,12 +35,30 @@ jobs:
           if [ -f /tmp/AndroidManifest.xml ]; then
             cp /tmp/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
           fi
-          sed -i 's/minSdkVersion = flutter.minSdkVersion/minSdkVersion = 21/g' android/app/build.gradle 2>/dev/null || true
-          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' android/app/build.gradle 2>/dev/null || true
-          sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 21/g' android/app/build.gradle 2>/dev/null || true
-          sed -i 's/minSdk flutter.minSdkVersion/minSdk 21/g' android/app/build.gradle 2>/dev/null || true
+          python3 - << 'EOF'
+          import glob, re
+          for path in glob.glob("android/app/build.gradle*"):
+              with open(path, "r", encoding="utf-8") as f:
+                  c = f.read()
+              if path.endswith(".kts"):
+                  c = re.sub(r"minSdk\s*=\s*flutter\.minSdkVersion", "minSdk = 21", c)
+                  c = re.sub(r"minSdkVersion\s*=\s*flutter\.minSdkVersion", "minSdkVersion = 21", c)
+                  if "isCoreLibraryDesugaringEnabled" not in c:
+                      c = c.replace("compileOptions {", "compileOptions {\n        isCoreLibraryDesugaringEnabled = true")
+                  if "desugar_jdk_libs" not in c:
+                      c += '\ndependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")\n}\n'
+              else:
+                  c = re.sub(r"minSdk(Version)?\s*=?\s*flutter\.minSdkVersion", "minSdkVersion = 21", c)
+                  if "coreLibraryDesugaringEnabled" not in c:
+                      c = c.replace("compileOptions {", "compileOptions {\n        coreLibraryDesugaringEnabled true")
+                  if "desugar_jdk_libs" not in c:
+                      c += '\ndependencies {\n    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.0.4"\n}\n'
+              with open(path, "w", encoding="utf-8") as f:
+                  f.write(c)
+              print("Patched:", path)
+          EOF
 
-      - name: Update Notification Package to Non-Buggy Version
+      - name: Update Notification Package
         run: |
           flutter pub remove audioplayers || true
           flutter pub remove hive_generator || true
