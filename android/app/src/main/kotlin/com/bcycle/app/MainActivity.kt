@@ -1,0 +1,6 @@
+package com.bcycle.app
+
+import io.flutter.embedding.android.FlutterActivity
+
+class MainActivity: FlutterActivity() {
+}
